@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. Backend Spring Boot Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Necessário para que o Actuator possa ser acessado pelo Prometheus no host
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - monitor-net
+    # O Prometheus precisa acessar o Actuator.
+    # Usamos host.docker.internal para acessar o host, mas se o backend estiver no docker,
+    # ele deve ser acessado pelo nome do serviço 'backend' na rede 'monitor-net'.
+    # A porta 8080 é a porta padrão do Spring Boot.
+
+  # 2. Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - monitor-net
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - backend
+
+  # 3. Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - monitor-net
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+networks:
+  monitor-net:
+    driver: bridge
+
+volumes:
+  grafana-storage:

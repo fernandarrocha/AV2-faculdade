@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s # Define o intervalo de scrape global
+
+scrape_configs:
+  - job_name: 'spring-boot-app'
+    # O endpoint Actuator que expõe as métricas Prometheus
+    metrics_path: '/actuator/prometheus'
+    # Configuração para acessar o serviço 'backend' dentro da rede Docker Compose
+    static_configs:
+      - targets: ['backend:8080']
